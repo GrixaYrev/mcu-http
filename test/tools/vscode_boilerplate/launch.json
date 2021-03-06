@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Сборка и отладка",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/test/build/test/app.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceRoot}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "path-to-gcc-bin",
+      "setupCommands": [
+        {
+          "description": "Включить автоматическое форматирование для gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "Build application"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+test/build
+**/.lock-waf*
+**/*waf*
+/.vscode

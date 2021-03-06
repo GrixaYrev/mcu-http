@@ -1,0 +1,51 @@
+top ='..'
+out = 'build'
+
+def options(opt):
+    opt.load('compiler_c')
+
+def configure(conf):
+    conf.options.check_c_compiler = 'gcc'
+    conf.load('compiler_c')
+    conf.env.append_unique('CFLAGS',    ['-g3', '-O0'])
+    conf.env.append_unique('LINKFLAGS', ['-g3', '-O0'])
+    conf.env.append_unique('LDFLAGS',   ['-lWs2_32', '-lMswsock', '-lAdvApi32'])  # библиотеки должны быть в конце списка параметров!
+
+def build(bld):
+    source  = [bld.path.find_node('main.c')]
+    source += [bld.path.find_node('../server.c')]
+    source += [bld.path.find_node('../methods.c')]
+    source += [bld.path.find_node('../lines.c')]
+    source += [bld.path.find_node('../headers.c')]
+
+    # пути поиска файлов заголовков
+    bld.env.INCLUDES = []
+    # bld.env.DEFINES = ['WSC_VERBOSE']
+
+    # меняем строку компиляции (https://gitlab.com/ita1024/waf/-/issues/2207)
+    from waflib.Tools import c as default_c
+    class c(default_c.c):
+        run_str='${CC} ${ARCH_ST:ARCH} ${CFLAGS} ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CC_SRC_F}${SRC[0].abspath()} ${CC_TGT_F}${TGT[0].abspath()} ${CPPFLAGS}'
+
+    bld.program(source=source, target='app')
+
+# команда для генерации файлов настройки VSCode
+def vscode(ctx):
+    import json
+    import os   
+    # считываем файл запуска отладки
+    with open('./tools/vscode_boilerplate/launch.json', 'r', encoding='utf-8') as launch_file:
+        launch = json.load(launch_file) 
+    launch.get('configurations')[0]['miDebuggerPath'] = os.path.abspath(os.path.join(os.path.dirname(ctx.env.CC[0]) + '/gdb.exe'))
+    # TODO: путь к исполняемому файлу
+    # сохраняем результат в папку vscode
+    with open('../.vscode/launch.json', 'w', encoding='utf-8') as launch_file:
+        launch_file.writelines('// Файл сгенерирован командой waf vscode\n')
+        json.dump(launch, launch_file, indent=4, ensure_ascii=False)
+
+# контекст на основании контекста сборки, там будут переменные окружения
+# и контроль, запускался ли предварительно configure
+from waflib.Build import BuildContext
+class ExtendedBuildContext(BuildContext):
+        cmd = 'vscode'
+        fun = 'vscode'

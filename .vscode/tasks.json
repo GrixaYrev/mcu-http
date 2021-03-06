@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build application",
+      "type": "shell",
+      "options": {
+        "cwd": "${workspaceRoot}/test"
+      },
+      "command": "python.exe",
+      "args": [
+        "./waf-2.0.21",
+        "build"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+    },
+      "problemMatcher": "$gcc"
+    }
+  ]
+}
