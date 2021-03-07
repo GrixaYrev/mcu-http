@@ -12,13 +12,24 @@
 #include "../http.h"
 
 
+void v_MH_PrintF(uint8_t * format, ...)
+{
+  va_list args;
+  va_start(args, format);
+
+  vprintf(format, args);
+
+  va_end(args);
+}
+
+
 static uint8_t recvbuf[256];
 
 int32_t connsection_work(SOCKET connection)
 {
   MHS_t mhs;
 
-  i32_MHS_Init(&mhs);
+  i32_MHS_Init(&mhs, v_MH_PrintF);
 
   int iResult;
   do 

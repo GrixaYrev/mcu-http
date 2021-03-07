@@ -7,10 +7,11 @@
 #include "methods.h"
 
 
-#define MCU_HTTP_LINE_MAX_LENGTH    (192)
+#define MCU_HTTP_LINE_MAX_LENGTH    (160)
 #define MCU_HTTP_PATH_MAX_LENGTH    (80)
 
 
+typedef void (*v_MH_PrintF_t)(uint8_t * format, ...);
 
 typedef enum
 {
@@ -39,19 +40,34 @@ typedef struct
 } MH_Line_t;
 
 
+typedef enum
+{
+  MH_HeaderConnection_Close = 0,
+  MH_HeaderConnection_KeepAlive
+
+} MH_HeaderConnection_t;
+
 typedef struct
 {
-  uint8_t     Path[MCU_HTTP_PATH_MAX_LENGTH];
-  uint32_t    Length;
-  MH_Method_t Method;
+  uint32_t              ContentLength;
+  MH_HeaderConnection_t Connection;
+
+} MH_Headers_t;
+
+typedef struct
+{
+  uint8_t       Path[MCU_HTTP_PATH_MAX_LENGTH];
+  MH_Method_t   Method;
+  MH_Headers_t  Headers;  
 
 } MH_Request_t;
 
 typedef struct
 {
-  uint32_t ContentLength;
+  MH_Headers_t  Headers; 
+  uint32_t      Code; 
 
-} MH_Headers_t;
+} MH_Response_t;
 
 
 typedef int32_t (*i32_MH_BodyProcess_t)(void * user_data, uint32_t offset, uint8_t * data, uint32_t length);
@@ -68,10 +84,10 @@ typedef struct
 
 typedef struct
 {
+  v_MH_PrintF_t       PrintF;
   MH_Line_t           Line;
   MH_RxState_t        RxState;
   MH_Request_t        Request;
-  MH_Headers_t        Headers;
   MH_Body_t           Body;
 
 } MHS_t;
@@ -88,5 +104,5 @@ void v_MH_HeaderDefault(MH_Headers_t * headers);
 
 
 int32_t i32_MHS_OnReceive(MHS_t * server, uint8_t * data, uint32_t length);
-int32_t i32_MHS_Init(MHS_t * server);
+int32_t i32_MHS_Init(MHS_t * server, v_MH_PrintF_t log_printf);
 

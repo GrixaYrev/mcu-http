@@ -3,6 +3,7 @@
 
 
 typedef int32_t (*i32_MH_HeaderParse_t)(MH_Headers_t * headers, MH_Line_t * line, uint32_t offset);
+typedef int32_t (*i32_MH_HeaderAdd_t)(MH_Headers_t * headers, uint8_t * buffer, uint32_t buffer_size);
 
 typedef struct
 {
@@ -18,6 +19,12 @@ static int32_t i32_MH_ContentLengthParse(MH_Headers_t * headers, MH_Line_t * lin
   headers->ContentLength = atoi(&line->Data[offset]);
   return 0;
 }
+
+static int32_t i32_MH_ContentLengthAdd_t(MH_Headers_t * headers, uint8_t * buffer, uint32_t buffer_size)
+{
+ 
+}
+
 
 const MH_HeaderTable_t MH_HeaderTable[] = {
 
@@ -43,4 +50,5 @@ int32_t i32_MH_ParseHeaderLine(MH_Headers_t * headers, MH_Line_t * line)
 void v_MH_HeaderDefault(MH_Headers_t * headers)
 {
   headers->ContentLength = 0;
+  headers->Connection = MH_HeaderConnection_Close;
 }
