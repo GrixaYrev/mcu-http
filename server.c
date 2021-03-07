@@ -3,8 +3,6 @@
 
 #include "http.h"
 
-#include "stdio.h" // FIXME: Убрать все printf()
-
 
 static int32_t i32_MHS_ParseStartLine(MHS_t * server)
 {
@@ -58,7 +56,7 @@ static int32_t i32_MHS_ProcessLine(MHS_t * server)
     uint32_t cnt = ((sizeof(buf) - 1) > server->Line.Length) ? server->Line.Length : (sizeof(buf) - 1);
     strncpy(buf, server->Line.Data, cnt);
     buf[cnt] = '\0';
-    fprintf(stdout, "Parse string: \"%s\"\n", buf);
+    server->PrintF("Parse string: \"%s\"\n", buf);
   }
 
   switch (server->RxState)
@@ -72,9 +70,9 @@ static int32_t i32_MHS_ProcessLine(MHS_t * server)
       }
       else
       {
-        fprintf(stdout, "Method: %d\n", server->Request.Method);
-        fprintf(stdout, "Path: %s\n", server->Request.Path);
-        v_MH_HeaderDefault(&server->Headers);
+        server->PrintF("Method: %d\n", server->Request.Method);
+        server->PrintF("Path: %s\n", server->Request.Path);
+        v_MH_HeaderDefault(&server->Request.Headers);
         server->RxState = MH_RxState_HeaderLines;
       }
       break;
@@ -82,14 +80,14 @@ static int32_t i32_MHS_ProcessLine(MHS_t * server)
     case MH_RxState_HeaderLines:
       if (server->Line.Length == 0)
       {
-        fprintf(stdout, "Content-Length: %d\n", server->Headers.ContentLength);
+        server->PrintF("Content-Length: %d\n", server->Request.Headers.ContentLength);
         // TODO: Обработка запроса, получение данных для обработки тела
         server->Body.Count = 0;
-        server->RxState = (server->Headers.ContentLength > 0) ? MH_RxState_Body : MH_RxState_Finish;
+        server->RxState = (server->Request.Headers.ContentLength > 0) ? MH_RxState_Body : MH_RxState_Finish;
       }
       else
       {
-        ret = i32_MH_ParseHeaderLine(&server->Headers, &server->Line);
+        ret = i32_MH_ParseHeaderLine(&server->Request.Headers, &server->Line);
         if (ret < 0)
         {
           server->RxState = MH_RxState_Error;
@@ -159,7 +157,7 @@ int32_t i32_MHS_OnReceive(MHS_t * server, uint8_t * data, uint32_t length)
       }
       server->Body.Count += (length - count);
       count += (length - count);
-      if (server->Body.Count >= server->Headers.ContentLength)
+      if (server->Body.Count >= server->Request.Headers.ContentLength)
       {
         server->RxState = MH_RxState_Finish;
       }
@@ -174,16 +172,21 @@ int32_t i32_MHS_OnReceive(MHS_t * server, uint8_t * data, uint32_t length)
   if (server->RxState == MH_RxState_Finish)
   {
     // прием закончен, надло отвечать
-    fprintf(stdout, "Ready to response, body size: %d\n", server->Body.Count);
+    server->PrintF("Ready to response, body size: %d\n", server->Body.Count);
   }
 
   return result;
 }
 
 
-int32_t i32_MHS_Init(MHS_t * server)
+int32_t i32_MHS_Init(MHS_t * server, v_MH_PrintF_t log_printf)
 {
   if (server == NULL)
+  {
+    return -1; // TODO: Коды возврата
+  }
+
+  if (log_printf == NULL)
   {
     return -1; // TODO: Коды возврата
   }
@@ -191,6 +194,7 @@ int32_t i32_MHS_Init(MHS_t * server)
   server->Line.State = MH_LineState_Reset;
   server->RxState = MH_RxState_Reset;
   server->Body.Process = NULL;
+  server->PrintF = log_printf;
 
   return 0;
 }
