@@ -66,7 +66,10 @@ int32_t i32_Main_ReqExec(MH_Connection_t * connection)
   }
   else if (connection->Request.Method == MH_Method_POST)
   {
-    handler = fopen(path, "wb");
+    if (0 == strncmp("./test_site/post/", path, sizeof("./test_site/post/") - 1))
+    {
+      handler = fopen(path, "wb");
+    }
   }
 
   if (handler == NULL)

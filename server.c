@@ -62,6 +62,11 @@ static int32_t i32_MHS_ParseStartLine(MH_Connection_t * connection)
     connection->Request.Path[path_length++] = '\0';
   }
 
+  int32_t ret = i32_MH_ParseParametersInURL(&connection->Request);
+  if (ret < 0)
+  {
+    return ret;
+  }
 
   // TODO: сделать проверку версии
 
@@ -98,8 +103,17 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
       }
       else
       {
-        MH_TRACE("Method: %d\n", connection->Request.Method);
+        MH_TRACE("Method: %s\n", s_MH_GetMethodName(connection->Request.Method));
         MH_TRACE("Path: %s\n", connection->Request.Path);
+        if (connection->Request.ParametersCount > 0)
+        {
+          MH_TRACE("Parameters:\n");
+          for (uint32_t i = 0; i < connection->Request.ParametersCount; i++)
+          {
+            MH_TRACE("\t%s = %s\n", connection->Request.Parameters[i].Name,\
+                                    connection->Request.Parameters[i].Value);
+          }
+        }
         v_MH_HeaderDefault(&connection->Request.Headers);
         v_MH_HeaderDefault(&connection->Response.Headers);
         connection->RxState = MH_RxState_HeaderLines;
@@ -125,9 +139,17 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
             connection->Response.Code = 500;
             connection->RxState = MH_RxState_Finish;
           }
+          else
+          {
+            connection->RxState = (connection->Request.Headers.ContentLength > 0) ? MH_RxState_Body : MH_RxState_Finish;
+          }
         }
-        connection->BodyCount = 0;
-        connection->RxState = (connection->Request.Headers.ContentLength > 0) ? MH_RxState_Body : MH_RxState_Finish;
+        else
+        {
+          // отвечаем ошибкой
+          connection->Response.Code = 500;
+          connection->RxState = MH_RxState_Finish;
+        }
       }
       else
       {
@@ -163,7 +185,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
   int32_t result = 0; // TODO: Коды возврата
   int32_t count = 0;
 
-  while (count < length)
+  while ((count < length) && (connection->RxState != MH_RxState_Finish))
   {
     uint32_t remaining = length - count;
 
@@ -228,6 +250,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     {
       // ошибка
       result = -1; // TODO: Коды возврата
+      break;
     }
   }
 
@@ -236,7 +259,8 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     // прием закончен, надо отвечать
     MH_TRACE("Ready to response, body size: %d\n", connection->BodyCount);
     // если было тело в запросе, надо закрыть поток
-    if (connection->Request.Headers.ContentLength > 0)
+    if ((connection->Response.Code == 200) 
+      && (connection->Request.Headers.ContentLength > 0))
     {
       if (connection->Stream.Close != NULL)
       {
@@ -339,6 +363,7 @@ int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request
   connection->RxState = MH_RxState_Reset;
   connection->RequestExecute = request_execute;
   connection->Transmitter = *transmitter;
+  connection->BodyCount = 0;
 
   return 0;
 }

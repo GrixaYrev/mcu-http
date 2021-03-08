@@ -9,12 +9,13 @@
 
 #ifdef __MINGW32__
   #include <stdio.h>
-  #define MH_TRACE(_format_, ...) printf(_format_, __VA_ARGS__)
+  #define MH_TRACE(...) printf(__VA_ARGS__)
 #endif
 
 
-#define MCU_HTTP_LINE_MAX_LENGTH    (160)
-#define MCU_HTTP_PATH_MAX_LENGTH    (80)
+#define MCU_HTTP_LINE_MAX_LENGTH      (160)
+#define MCU_HTTP_PATH_MAX_LENGTH      (80)
+#define MCU_HTTP_PARAMETERS_MAX_COUNT (4)
 
 
 typedef enum
@@ -59,10 +60,20 @@ typedef struct
 } MH_Headers_t;
 
 typedef struct
+{ 
+  uint8_t * Name;
+  uint8_t * Value;
+
+} MH_ParametersInURL_t;
+
+
+typedef struct
 {
-  uint8_t       Path[MCU_HTTP_PATH_MAX_LENGTH];
-  MH_Method_t   Method;
-  MH_Headers_t  Headers;  
+  uint8_t               Path[MCU_HTTP_PATH_MAX_LENGTH];
+  MH_Method_t           Method;
+  MH_Headers_t          Headers;  
+  uint32_t              ParametersCount;
+  MH_ParametersInURL_t  Parameters[MCU_HTTP_PARAMETERS_MAX_COUNT];
 
 } MH_Request_t;
 
@@ -155,6 +166,7 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection);
 const uint8_t * s_MH_GetMethodName(MH_Method_t method);
 
 int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
+int32_t i32_MH_ParseParametersInURL(MH_Request_t * request);
 
 
 int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t length);
