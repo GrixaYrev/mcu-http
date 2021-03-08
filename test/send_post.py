@@ -1,6 +1,8 @@
 import requests
 
 try:
-	requests.post('http://localhost:27015/cgi/digits.cgi', data = b'1234567890')
+	with open('bigfile.pdf', 'rb') as f:
+		ret = requests.post('http://localhost:27015/post/bigfile.pdf', data = f)
+		print(ret)
 except Exception as e:
 	print(str(e))

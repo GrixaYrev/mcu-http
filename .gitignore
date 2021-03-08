@@ -2,3 +2,4 @@ test/build
 **/.lock-waf*
 **/*waf*
 /.vscode
+/test/test_site/post
