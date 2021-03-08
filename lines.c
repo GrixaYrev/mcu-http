@@ -25,7 +25,7 @@ int32_t i32_MH_ReceiveLine(MH_Line_t * line, uint8_t * data, uint32_t length)
         else
         {
           // ошибка
-          count = -1; // TODO: Коды возврата
+          count = MH_RC_LINEERROR;
         }
         break;
 
@@ -38,7 +38,7 @@ int32_t i32_MH_ReceiveLine(MH_Line_t * line, uint8_t * data, uint32_t length)
         else if (data[count] == 0x0A)
         {
           // ошибка
-          count = -1; // TODO: Коды возврата
+          count = MH_RC_LINEERROR;
         }
         else if (line->Length < MCU_HTTP_LINE_MAX_LENGTH)
         {
@@ -61,13 +61,13 @@ int32_t i32_MH_ReceiveLine(MH_Line_t * line, uint8_t * data, uint32_t length)
         else
         {
           // ошибка
-          count = -1; // TODO: Коды возврата
+          count = MH_RC_LINEERROR;
         }
         break;
 
       default:
-        // ошибка
-        count = -1; // TODO: Коды возврата
+        // непонятная критическая ошибка, не может быть других состояний
+        count = MH_RC_FAULT;
     }
 
     if ((count < 0) || (line->State == MH_LineState_Reset))

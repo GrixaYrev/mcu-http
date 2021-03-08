@@ -7,11 +7,11 @@ int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream)
 {
   if (connection == NULL)
   {
-    return -1; // TODO: Коды возврата
+    return MH_RC_INVALARG;
   }
 
   connection->Stream = *stream;
-  return 0;
+  return MH_RC_OK;
 }
 
 
@@ -19,7 +19,7 @@ int32_t i32_MH_ParseParametersInURL(MH_Request_t * request)
 {
   if (request == NULL)
   {
-    return -1; // TODO: Коды возврата 
+    return MH_RC_INVALARG;
   }
 
   request->ParametersCount = 0;
@@ -63,5 +63,5 @@ int32_t i32_MH_ParseParametersInURL(MH_Request_t * request)
     cursor++;
   }
 
-  return 0;
+  return MH_RC_OK;
 }

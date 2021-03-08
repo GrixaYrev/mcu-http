@@ -18,6 +18,16 @@
 #define MCU_HTTP_PARAMETERS_MAX_COUNT (4)
 
 
+#define MH_RC_OK          ( 0)
+#define MH_RC_INVALARG    (-1)
+#define MH_RC_NOT200      (-2)
+#define MH_RC_LINEERROR   (-3)
+#define MH_RC_FAULT       (-4)
+#define MH_RC_SENDERROR   (-5)
+#define MH_RC_SMALLBUFFER (-6)
+#define MH_RC_CLOSE       (-7)
+
+
 typedef enum
 {
   MH_RxState_Reset = 0,
@@ -143,12 +153,13 @@ typedef struct mh_conn_s
 
 #define  MH_NAME_AND_LENGTH(_name_)    _name_, ((uint32_t)(sizeof(_name_) - 1))
 
-inline static void v_MH_SetResponseCode(MH_Connection_t * connection, uint32_t code)
+inline static int32_t i32_MH_ReturnWithCode(MH_Connection_t * connection, uint32_t code)
 {
   if (connection != NULL)
   {
     connection->Response.Code = code;
   }
+  return (code == 20) ? MH_RC_OK : MH_RC_NOT200; 
 }
 
 

@@ -74,8 +74,7 @@ int32_t i32_Main_ReqExec(MH_Connection_t * connection)
 
   if (handler == NULL)
   {
-    v_MH_SetResponseCode(connection, 404);
-    return -444; // TODO: коды возврата
+    return i32_MH_ReturnWithCode(connection, 404);
   }
 
   fprintf(stdout, "Open file 0x%08X\n", handler);
@@ -87,8 +86,7 @@ int32_t i32_Main_ReqExec(MH_Connection_t * connection)
 
   i32_MH_SetStream(connection, &stream);
 
-  v_MH_SetResponseCode(connection, 200);
-  return 0; // TODO: коды возврата
+  return i32_MH_ReturnWithCode(connection, 200);
 }
 
 
