@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AC-1</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <script src="js/rfid.js"></script>
+    <script src="js/common.js"></script>
+  </head>
+
+  <body>
+    <div class="as1-loader">
+      <div class="lds-css ng-scope">
+        <div class="lds-spinner" style="width: 100%; height: 100%">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+    <div class="as1-wrap">
+      <div class="as1-header">
+        <div class="as1-header__wrap as1-header__wrap-background">
+          <div class="as1-header__logo"><img src="img/strim.png" /></div>
+          <div class="as1-header__text-small">Connecting technologies</div>
+          <div class="as1-header__text-big">Electric charging station</div>
+        </div>
+      </div>
+      <div class="as1-menu">
+        <div class="as1-menu__wrap as1-menu__wrap-style">
+          <ul class="as1-menu__ul">
+            <li class="as1-menu__li">
+              <a class="as1-menu__link" href="index.html">Main</a>
+            </li>
+            <li class="as1-menu__li">
+              <a class="as1-menu__link" href="settings.html">Settings</a>
+            </li>
+            <li class="as1-menu__li">
+              <a class="as1-menu__link as1-menu__link-active" href="rfid.html">
+                RFID
+              </a>
+            </li>
+            <li class="as1-menu__li">
+              <a class="as1-menu__link" href="locallist.html">
+                Local auth list
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="as1-wrap__info"></div>
+
+      <div class="as1-wrap__footer"></div>
+
+      <script>
+        document.addEventListener(
+          "DOMContentLoaded",
+          function () {
+            const loader = document.querySelector(".as1-loader");
+            loader.classList.add("as1-loader_hidden");
+            getDataFromBoard();
+          },
+          false
+        );
+      </script>
+    </div>
+  </body>
+</html>

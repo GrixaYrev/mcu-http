@@ -7,11 +7,15 @@
 #include "methods.h"
 
 
+#ifdef __MINGW32__
+  #include <stdio.h>
+  #define MH_TRACE(_format_, ...) printf(_format_, __VA_ARGS__)
+#endif
+
+
 #define MCU_HTTP_LINE_MAX_LENGTH    (160)
 #define MCU_HTTP_PATH_MAX_LENGTH    (80)
 
-
-typedef void (*v_MH_PrintF_t)(uint8_t * format, ...);
 
 typedef enum
 {
@@ -70,39 +74,90 @@ typedef struct
 } MH_Response_t;
 
 
-typedef int32_t (*i32_MH_BodyProcess_t)(void * user_data, uint32_t offset, uint8_t * data, uint32_t length);
+typedef int32_t (*i32_MH_WriteToStream_t)(void * user_data,
+                                          const uint8_t * data, uint32_t count);
+typedef int32_t (*i32_MH_ReadStream_t)(void * user_data, 
+                                       uint8_t * buffer, uint32_t count);
+typedef int32_t (*i32_MH_CloseStream_t)(void * user_data);
 
 
 typedef struct
 {
-  uint32_t              Count;
-  i32_MH_BodyProcess_t  Process;
-  void *                UserData;
+  void *                  UserData;
+  i32_MH_WriteToStream_t  Write;
+  i32_MH_ReadStream_t     Read;
+  i32_MH_CloseStream_t    Close;
 
-} MH_Body_t;
+} MH_Stream_t;
 
+
+typedef struct mh_conn_s MH_Connection_t;
+
+typedef int32_t (*i32_MH_ReqExec_t)(MH_Connection_t * connection);
+typedef int32_t (*i32_MH_Send_t)(void * user_data, uint8_t * data, uint32_t count);
 
 typedef struct
 {
-  v_MH_PrintF_t       PrintF;
+  void *        UserData;
+  i32_MH_Send_t Send;
+  uint8_t *     Buffer;
+  uint32_t      BufferSize;
+
+} MH_Transmitter_t;
+
+
+typedef enum
+{
+  MH_ConnectionType_Server = 0,
+  MH_ConnectionType_Client
+
+} MH_ConnectionType_t;
+
+typedef struct mh_conn_s
+{
+  MH_ConnectionType_t Type;
   MH_Line_t           Line;
   MH_RxState_t        RxState;
   MH_Request_t        Request;
-  MH_Body_t           Body;
+  MH_Response_t       Response;
+  uint32_t            BodyCount;
+  void *              UserData;
+  i32_MH_ReqExec_t    RequestExecute;
+  MH_Stream_t         Stream;
+  MH_Transmitter_t    Transmitter;
 
-} MHS_t;
+} MH_Connection_t;
 
 
 
 #define  MH_NAME_AND_LENGTH(_name_)    _name_, ((uint32_t)(sizeof(_name_) - 1))
 
+inline static void v_MH_SetResponseCode(MH_Connection_t * connection, uint32_t code)
+{
+  if (connection != NULL)
+  {
+    connection->Response.Code = code;
+  }
+}
+
 
 int32_t i32_MH_ReceiveLine(MH_Line_t * line, uint8_t * data, uint32_t length);
 
 int32_t i32_MH_ParseHeaderLine(MH_Headers_t * headers, MH_Line_t * line);
+int32_t i32_MH_GetHeaderTableSize(void);
+int32_t i32_MH_WriteHeaderLine(MH_Headers_t * headers, uint8_t * buffer, uint32_t buffer_size, 
+                                                                         uint32_t header_index);
 void v_MH_HeaderDefault(MH_Headers_t * headers);
 
+const uint8_t * s_MH_GetResponseTextByCode(uint32_t code);
+int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection);
 
-int32_t i32_MHS_OnReceive(MHS_t * server, uint8_t * data, uint32_t length);
-int32_t i32_MHS_Init(MHS_t * server, v_MH_PrintF_t log_printf);
+const uint8_t * s_MH_GetMethodName(MH_Method_t method);
+
+int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
+
+
+int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t length);
+int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request_execute, 
+                                                        MH_Transmitter_t * transmitter);
 

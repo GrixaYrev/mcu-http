@@ -12,24 +12,105 @@
 #include "../http.h"
 
 
-void v_MH_PrintF(uint8_t * format, ...)
+
+int32_t i32_Main_ReadStream(void * user_data, uint8_t * buffer, uint32_t count)
 {
-  va_list args;
-  va_start(args, format);
-
-  vprintf(format, args);
-
-  va_end(args);
+  fprintf(stdout, "Read %d bytes from file 0x%08X\n", count, user_data);
+  return fread(buffer, 1, count, (FILE *)user_data);
 }
 
+int32_t i32_Main_WriteStream(void * user_data, const uint8_t * buffer, uint32_t count)
+{
+  fprintf(stdout, "Write %d bytes to file 0x%08X\n", count, user_data);
+  return fwrite(buffer, 1, count, (FILE *)user_data);
+}
+
+int32_t i32_Main_CloseStream(void * user_data)
+{
+  fprintf(stdout, "Close file 0x%08X\n", user_data);
+  return fclose((FILE *)user_data);
+}
+
+
+int32_t i32_Main_ReqExec(MH_Connection_t * connection)
+{
+  MH_Stream_t stream = {0};
+
+  fprintf(stdout, "Request: \"%s %s\"\n", s_MH_GetMethodName(connection->Request.Method), connection->Request.Path);
+
+  uint8_t path[128];
+  snprintf(path, sizeof(path), "./test_site%s", connection->Request.Path);
+  fprintf(stdout, "File: %s\n", path);
+
+
+  FILE * handler = NULL;
+  if (connection->Request.Method == MH_Method_GET)
+  {
+    handler = fopen(path, "rb");
+    if (handler != NULL)
+    {
+      // для GET надо прописать размер файла
+      fseek(handler, 0, SEEK_END);
+      int32_t size = ftell(handler);
+      if (size < 0)
+      {
+        connection->Response.Headers.ContentLength = 0;
+      }
+      else
+      {
+        connection->Response.Headers.ContentLength = size;
+      }
+      // возвращаем указатель в начало
+      fseek(handler, 0, SEEK_SET);
+    }
+  }
+  else if (connection->Request.Method == MH_Method_POST)
+  {
+    handler = fopen(path, "wb");
+  }
+
+  if (handler == NULL)
+  {
+    v_MH_SetResponseCode(connection, 404);
+    return -444; // TODO: коды возврата
+  }
+
+  fprintf(stdout, "Open file 0x%08X\n", handler);
+
+  stream.UserData = handler;
+  stream.Read = i32_Main_ReadStream;
+  stream.Write = i32_Main_WriteStream;
+  stream.Close = i32_Main_CloseStream;
+
+  i32_MH_SetStream(connection, &stream);
+
+  v_MH_SetResponseCode(connection, 200);
+  return 0; // TODO: коды возврата
+}
+
+
+
+int32_t i32_Main_SocketSend(void * user_data, uint8_t * data, uint32_t count)
+{
+  int32_t ret = send((SOCKET)user_data, data, count, 0);
+  if (ret == SOCKET_ERROR)
+  {
+    fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
+  }
+  return ret;
+}
 
 static uint8_t recvbuf[256];
 
 int32_t connsection_work(SOCKET connection)
 {
-  MHS_t mhs;
+  MH_Connection_t mhs;
+  MH_Transmitter_t tx = {.UserData = (void *)connection,
+                         .Send = i32_Main_SocketSend,
+                         .Buffer = recvbuf,
+                         .BufferSize = sizeof(recvbuf)};
 
-  i32_MHS_Init(&mhs, v_MH_PrintF);
+  i32_MH_InitServer(&mhs, i32_Main_ReqExec, &tx);
 
   int iResult;
   do 
@@ -39,11 +120,17 @@ int32_t connsection_work(SOCKET connection)
     if (iResult > 0)
     {
       fprintf(stdout, "Received %d bytes\n", iResult);
-      i32_MHS_OnReceive(&mhs, recvbuf, iResult);
+      int32_t ret = i32_MH_OnReceive(&mhs, recvbuf, iResult);
+      if (ret < 0)
+      {
+        // разрываем соединение
+        fprintf(stdout, "Server close connection\n");
+        break;
+      }
     }
     else if (iResult == 0)
     {
-      fprintf(stdout, "Connection closing...\n");
+      fprintf(stdout, "Client close connection\n");
     }
     else  
     {
@@ -94,34 +181,39 @@ int main(void)
       return -1;
     }
 
-    // слушаем
-    iResult = listen(server, 1);
-    if (iResult == SOCKET_ERROR) 
-    {
-      fprintf(stderr, "listen failed with error: %d\n", WSAGetLastError());
-      closesocket(server);
-      WSACleanup();
-      return -1;
-    }
+    do
+    {  
+      // слушаем
+      iResult = listen(server, 1);
+      if (iResult == SOCKET_ERROR) 
+      {
+        fprintf(stderr, "listen failed with error: %d\n", WSAGetLastError());
+        closesocket(server);
+        WSACleanup();
+        return -1;
+      }
 
-    // получаем сокет подключения
-    connection = accept(server, NULL, NULL);
-    if (connection == INVALID_SOCKET) 
-    {
-      fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
-      closesocket(server);
-      WSACleanup();
-      return 1;
-    }
+      // получаем сокет подключения
+      connection = accept(server, NULL, NULL);
+      if (connection == INVALID_SOCKET) 
+      {
+        fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
+        closesocket(server);
+        WSACleanup();
+        return 1;
+      }
+
+      fprintf(stdout, "Accepted client\n");
+
+      connsection_work(connection);
+
+      closesocket(connection);
+
+    } while (1);
 
     // сервер больше не нужен
     closesocket(server);
 
-    fprintf(stdout, "Accepted client\n");
-
-    connsection_work(connection);
-
-    closesocket(connection);
     WSACleanup();
   }
 
