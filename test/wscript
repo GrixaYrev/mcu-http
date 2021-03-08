@@ -13,14 +13,16 @@ def configure(conf):
 
 def build(bld):
     source  = [bld.path.find_node('main.c')]
+    source += [bld.path.find_node('../http.c')]
     source += [bld.path.find_node('../server.c')]
     source += [bld.path.find_node('../methods.c')]
     source += [bld.path.find_node('../lines.c')]
     source += [bld.path.find_node('../headers.c')]
+    source += [bld.path.find_node('../response.c')]
 
     # пути поиска файлов заголовков
     bld.env.INCLUDES = []
-    # bld.env.DEFINES = ['WSC_VERBOSE']
+    bld.env.DEFINES = []
 
     # меняем строку компиляции (https://gitlab.com/ita1024/waf/-/issues/2207)
     from waflib.Tools import c as default_c
