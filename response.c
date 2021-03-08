@@ -48,7 +48,7 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
 {
   if (connection->Transmitter.Send == NULL)
   {
-    return -1; // TODO: коды возврата
+    return MH_RC_INVALARG;
   }
 
   uint8_t * buf = connection->Transmitter.Buffer;
@@ -62,7 +62,7 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
   if (total_length >= (buf_size - 3))
   {
     // ошибка, слишком маленький буфер
-    return -1; // TODO: коды возврата
+    return MH_RC_SMALLBUFFER;
   }
 
   int32_t header_index = 0;
@@ -76,7 +76,7 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
       if (total_length == 0)
       {
         // ошибка, слишком маленький буфер
-        return -1; // TODO: коды возврата
+        return MH_RC_SMALLBUFFER;
       }
       else
       {
@@ -84,7 +84,7 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
         int32_t ret = connection->Transmitter.Send(connection->Transmitter.UserData, buf, total_length);
         if (ret != total_length)
         {
-          return -1; // TODO: коды возврата
+          return MH_RC_SENDERROR;
         }
         total_length = 0;
       }
@@ -103,10 +103,10 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
   int32_t ret = connection->Transmitter.Send(connection->Transmitter.UserData, buf, total_length);
   if (ret != total_length)
   {
-    return -1; // TODO: коды возврата
+    return MH_RC_SENDERROR;
   }
 
 
-  return 0;
+  return MH_RC_OK;
 }
 

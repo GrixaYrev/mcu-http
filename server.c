@@ -24,7 +24,7 @@ static int32_t i32_MHS_ParseStartLine(MH_Connection_t * connection)
   {
     // неизвестный метод
     connection->Response.Code = 501;
-    return -444; // TODO: коды возврата
+    return MH_RC_NOT200;
   }
 
   connection->Request.Method = method;
@@ -53,7 +53,7 @@ static int32_t i32_MHS_ParseStartLine(MH_Connection_t * connection)
     {
       // ошибка
       connection->Response.Code = 414;
-      return -444; // TODO: коды возврата
+      return MH_RC_NOT200;
     }
   }
   else
@@ -70,14 +70,14 @@ static int32_t i32_MHS_ParseStartLine(MH_Connection_t * connection)
 
   // TODO: сделать проверку версии
 
-  return 0; // TODO: коды возврата
+  return MH_RC_OK;
 }
 
 
 
 static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
 {
-  int32_t ret = 0; // TODO: коды возврата
+  int32_t ret = MH_RC_OK;
 
   {
     uint8_t buf[256];
@@ -92,7 +92,7 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
     case MH_RxState_Reset:
       // разбираем стартовую строчку
       ret = i32_MHS_ParseStartLine(connection);
-      if (ret == -444) // TODO: коды возврата
+      if (ret == MH_RC_NOT200)
       {
         // отвечаем, код ответа должен уже быть прописан
         connection->RxState = MH_RxState_Finish;
@@ -124,11 +124,10 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
       if (connection->Line.Length == 0)
       {
         MH_TRACE("Content-Length: %d\n", connection->Request.Headers.ContentLength);
-        // TODO: Обработка запроса, получение данных для обработки тела
         if (connection->RequestExecute != NULL)
         {
           ret = connection->RequestExecute(connection);
-          if (ret == -444) // TODO: коды возврата
+          if (ret == MH_RC_NOT200)
           {
             // код уже прописан
             connection->RxState = MH_RxState_Finish;  
@@ -165,7 +164,7 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
       connection->RxState = MH_RxState_Error;
   }
 
-  return 0;
+  return MH_RC_OK;
 }
 
 
@@ -174,15 +173,15 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
 {
   if (connection == NULL)
   {
-    return -1; // TODO: Коды возврата
+    return MH_RC_INVALARG;
   }
   
   if ((data == NULL) || (length == 0))
   {
-    return -1; // TODO: Коды возврата
+    return MH_RC_INVALARG;
   }
 
-  int32_t result = 0; // TODO: Коды возврата
+  int32_t result = MH_RC_OK;
   int32_t count = 0;
 
   while ((count < length) && (connection->RxState != MH_RxState_Finish))
@@ -195,10 +194,8 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
       result = i32_MH_ReceiveLine(&connection->Line, &data[count], remaining);
       if (result < 0)
       {
-        // TODO: Ответ клиенту
         connection->Response.Code = 400;
         connection->RxState = MH_RxState_Finish;
-        result = -1; // TODO: Коды возврата
         break;
       }
       else
@@ -209,10 +206,11 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
           result = i32_MHS_ProcessLine(connection);
           if (result < 0)
           {
-            // TODO: при некоторых результатах код не прописывать
-            connection->Response.Code = 400;
+            // функция вернет ошибку, только если что-то серьезное
+            // если код ответа определен, то будет MH_RC_OK
+            // и эта ветка не нужна
+            connection->Response.Code = 500;
             connection->RxState = MH_RxState_Finish;
-            result = -1; // TODO: Коды возврата
             break;
           }
         }
@@ -225,7 +223,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
         result = connection->Stream.Write(connection->Stream.UserData, &data[count], remaining);
         if (result < 0)
         {
-          // TODO: при некоторых результатах код не прописывать
+          // TODO: могут быть разные коды ответа
           connection->Response.Code = 500;
           connection->RxState = MH_RxState_Finish;
           result = -1; // TODO: Коды возврата
@@ -236,7 +234,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
       {
         connection->Response.Code = 500;
         connection->RxState = MH_RxState_Finish;
-        result = -1; // TODO: Коды возврата
+        result = MH_RC_INVALARG;
         break;
       }
       connection->BodyCount += remaining;
@@ -248,8 +246,8 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     }
     else
     {
-      // ошибка
-      result = -1; // TODO: Коды возврата
+      // ошибка, других состояний быть не должно
+      result = MH_RC_FAULT;
       break;
     }
   }
@@ -259,6 +257,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     // прием закончен, надо отвечать
     MH_TRACE("Ready to response, body size: %d\n", connection->BodyCount);
     // если было тело в запросе, надо закрыть поток
+    // TODO: учитывать возможность ошибки записи и тогда код ответа будет не 200
     if ((connection->Response.Code == 200) 
       && (connection->Request.Headers.ContentLength > 0))
     {
@@ -280,7 +279,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     {
       if ((connection->Stream.Read == NULL) || (connection->Transmitter.Send == NULL))
       {
-        result = -1; // TODO: Коды возврата
+        result = MH_RC_INVALARG;
       }
       else
       {
@@ -298,7 +297,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
             result = connection->Transmitter.Send(connection->Transmitter.UserData, buf, count);
             if (result != count)
             {
-              result = -1; // TODO: Коды возврата
+              result = MH_RC_SENDERROR;
             }
             else
             {
@@ -321,7 +320,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     // но если не KeepAlive, то разрваем
     if (connection->Response.Headers.Connection != MH_HeaderConnection_KeepAlive)
     {
-      result = -1; // TODO: Коды возврата
+      result = MH_RC_CLOSE;
     }
   }
 
@@ -333,29 +332,19 @@ int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request
                                                         MH_Transmitter_t * transmitter)
 {
   if (connection == NULL)
-  {
-    return -1; // TODO: Коды возврата
-  }
+    return MH_RC_INVALARG;
 
   if (request_execute == NULL)
-  {
-    return -1; // TODO: Коды возврата
-  }
+    return MH_RC_INVALARG;
 
   if (transmitter == NULL)
-  {
-    return -1; // TODO: Коды возврата
-  }
+    return MH_RC_INVALARG;
 
   if (transmitter->Send == NULL)
-  {
-    return -1; // TODO: Коды возврата
-  }
+    return MH_RC_INVALARG;
 
   if ((transmitter->Buffer == NULL) || (transmitter->BufferSize == 0))
-  {
-    return -1; // TODO: Коды возврата
-  }
+    return MH_RC_INVALARG;
 
 
   connection->Type = MH_ConnectionType_Server;
@@ -365,5 +354,5 @@ int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request
   connection->Transmitter = *transmitter;
   connection->BodyCount = 0;
 
-  return 0;
+  return MH_RC_OK;
 }
