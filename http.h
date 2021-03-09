@@ -111,7 +111,7 @@ typedef int32_t (*i32_MH_WriteToStream_t)(void * user_data,
                                           const uint8_t * data, uint32_t count);
 typedef int32_t (*i32_MH_ReadStream_t)(void * user_data, 
                                        uint8_t * buffer, uint32_t count);
-typedef int32_t (*i32_MH_CloseStream_t)(void * user_data);
+typedef int32_t (*i32_MH_CloseStream_t)(void * user_data, uint32_t * status_code);
 
 
 typedef struct

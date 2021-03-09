@@ -264,7 +264,9 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     {
       if (connection->Stream.Close != NULL)
       {
-        connection->Stream.Close(connection->Stream.UserData);
+        uint32_t status_code;
+        connection->Stream.Close(connection->Stream.UserData, &status_code);
+        connection->Response.Code = status_code;
       }
     } 
 
@@ -311,7 +313,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
       // закрываем поток в конце
       if (connection->Stream.Close != NULL)
       {
-        connection->Stream.Close(connection->Stream.UserData);
+        connection->Stream.Close(connection->Stream.UserData, NULL);
       }
     }
 
