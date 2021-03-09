@@ -356,6 +356,7 @@ int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request
   connection->Transmitter = *transmitter;
   connection->BodyCount = 0;
   memset(&connection->Stream, 0x00, sizeof(MH_Stream_t));
+  memset(&connection->Response, 0x00, sizeof(MH_Response_t));
 
   return MH_RC_OK;
 }
