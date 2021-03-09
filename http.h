@@ -10,7 +10,7 @@
 #ifdef __MINGW32__
   #define MH_TRACE(...) printf(__VA_ARGS__)
 #else
-  #define MH_TRACE(...)
+  #define MH_TRACE(...) 
 #endif
 
 
@@ -191,6 +191,7 @@ const uint8_t * s_MH_GetMethodName(MH_Method_t method);
 uint32_t u32_MH_GetMethodNameLength(MH_Method_t method);
 
 int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
+int32_t i32_MH_SetContentLength(MH_Connection_t * connection, uint32_t length);
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request);
 
 

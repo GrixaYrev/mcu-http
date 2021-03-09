@@ -15,6 +15,18 @@ int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream)
   return MH_RC_OK;
 }
 
+int32_t i32_MH_SetContentLength(MH_Connection_t * connection, uint32_t length)
+{
+  if (connection == NULL)
+  {
+    return MH_RC_INVALARG;
+  }
+
+  connection->Response.Headers.ContentLength = length;
+  
+  return MH_RC_OK;
+}
+
 
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request)
 {

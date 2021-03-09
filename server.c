@@ -79,6 +79,7 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
 {
   int32_t ret = MH_RC_OK;
 
+#ifdef __MINGW32__
   {
     uint8_t buf[256];
     uint32_t cnt = ((sizeof(buf) - 1) > connection->Line.Length) ? connection->Line.Length : (sizeof(buf) - 1);
@@ -86,6 +87,7 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
     buf[cnt] = '\0';
     MH_TRACE("Parse string: \"%s\"\n", buf);
   }
+#endif
 
   switch (connection->RxState)
   {
@@ -314,12 +316,13 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     }
 
     // закончили, можем снова принимать
-    connection->RxState == MH_RxState_Reset;
+    connection->RxState = MH_RxState_Reset;
 
     // но если не KeepAlive, то разрваем
     if (connection->Response.Headers.Connection != MH_HeaderConnection_KeepAlive)
     {
-      result = MH_RC_CLOSE;
+      if (result >= 0)
+        result = MH_RC_CLOSE;
     }
   }
 
