@@ -25,10 +25,16 @@ int32_t i32_Main_WriteStream(void * user_data, const uint8_t * buffer, uint32_t 
   return fwrite(buffer, 1, count, (FILE *)user_data);
 }
 
-int32_t i32_Main_CloseStream(void * user_data)
+int32_t i32_Main_CloseStream(void * user_data, uint32_t * status_code)
 {
   fprintf(stdout, "Close file 0x%08X\n", user_data);
-  return fclose((FILE *)user_data);
+  int32_t ret = fclose((FILE *)user_data);
+  if (status_code != NULL)
+  {
+    *status_code = (ret < 0) ? 500 : 200;
+  }
+  
+  return ret;
 }
 
 
