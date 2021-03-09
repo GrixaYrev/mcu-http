@@ -8,7 +8,7 @@
       "program": "${workspaceRoot}/test/build/test/app.exe",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceRoot}",
+      "cwd": "${workspaceRoot}/test",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",
