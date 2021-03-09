@@ -126,6 +126,7 @@ static int32_t i32_MHS_ProcessLine(MH_Connection_t * connection)
         MH_TRACE("Content-Length: %d\n", connection->Request.Headers.ContentLength);
         if (connection->RequestExecute != NULL)
         {
+          connection->Stream.IsOpened = false;
           ret = connection->RequestExecute(connection);
           if (ret == MH_RC_NOT200)
           {
@@ -221,12 +222,11 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
       if (connection->Stream.Write != NULL)
       {
         result = connection->Stream.Write(connection->Stream.UserData, &data[count], remaining);
-        if (result < 0)
+        if (result != remaining)
         {
-          // TODO: могут быть разные коды ответа
-          connection->Response.Code = 500;
+          connection->Response.Code = (result < 0) ? 500 : 413;
           connection->RxState = MH_RxState_Finish;
-          result = -1; // TODO: Коды возврата
+          result = MH_RC_WRITEERROR;
           break;
         }
       }
@@ -257,8 +257,7 @@ int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t 
     // прием закончен, надо отвечать
     MH_TRACE("Ready to response, body size: %d\n", connection->BodyCount);
     // если было тело в запросе, надо закрыть поток
-    // TODO: учитывать возможность ошибки записи и тогда код ответа будет не 200
-    if ((connection->Response.Code == 200) 
+    if (connection->Stream.IsOpened 
       && (connection->Request.Headers.ContentLength > 0))
     {
       if (connection->Stream.Close != NULL)
@@ -353,6 +352,7 @@ int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request
   connection->RequestExecute = request_execute;
   connection->Transmitter = *transmitter;
   connection->BodyCount = 0;
+  memset(&connection->Stream, 0x00, sizeof(MH_Stream_t));
 
   return MH_RC_OK;
 }

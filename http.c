@@ -11,6 +11,7 @@ int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream)
   }
 
   connection->Stream = *stream;
+  connection->Stream.IsOpened = true;
   return MH_RC_OK;
 }
 
