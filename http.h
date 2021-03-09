@@ -3,12 +3,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <stdbool.h>
+#include <stdio.h>
 
 
 #ifdef __MINGW32__
-  #include <stdio.h>
   #define MH_TRACE(...) printf(__VA_ARGS__)
+#else
+  #define MH_TRACE(...)
 #endif
 
 
@@ -25,6 +27,7 @@
 #define MH_RC_SENDERROR   (-5)
 #define MH_RC_SMALLBUFFER (-6)
 #define MH_RC_CLOSE       (-7)
+#define MH_RC_WRITEERROR  (-8)
 
 
 typedef enum
@@ -117,6 +120,7 @@ typedef struct
   i32_MH_WriteToStream_t  Write;
   i32_MH_ReadStream_t     Read;
   i32_MH_CloseStream_t    Close;
+  uint32_t                IsOpened;
 
 } MH_Stream_t;
 

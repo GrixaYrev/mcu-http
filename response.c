@@ -16,6 +16,7 @@ static const MH_ResponseCodeTable_t MH_ResponseCodeTable[] =
 
   {400, "Bad Request"},
   {404, "Not Found"},
+  {413, "Payload Too Large"},
   {414, "URI Too Long"},
 
   {500, "Internal Server Error"},
