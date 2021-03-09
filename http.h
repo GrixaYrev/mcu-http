@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "methods.h"
 
 
 #ifdef __MINGW32__
@@ -26,6 +25,16 @@
 #define MH_RC_SENDERROR   (-5)
 #define MH_RC_SMALLBUFFER (-6)
 #define MH_RC_CLOSE       (-7)
+
+
+typedef enum
+{
+  MH_Method_GET = 0,
+  MH_Method_POST,
+
+  MH_Method_LastIndex
+
+} MH_Method_t;
 
 
 typedef enum
@@ -159,7 +168,7 @@ inline static int32_t i32_MH_ReturnWithCode(MH_Connection_t * connection, uint32
   {
     connection->Response.Code = code;
   }
-  return (code == 20) ? MH_RC_OK : MH_RC_NOT200; 
+  return (code == 200) ? MH_RC_OK : MH_RC_NOT200; 
 }
 
 
@@ -175,6 +184,7 @@ const uint8_t * s_MH_GetResponseTextByCode(uint32_t code);
 int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection);
 
 const uint8_t * s_MH_GetMethodName(MH_Method_t method);
+uint32_t u32_MH_GetMethodNameLength(MH_Method_t method);
 
 int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request);

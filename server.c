@@ -13,7 +13,7 @@ static int32_t i32_MHS_ParseStartLine(MH_Connection_t * connection)
   MH_Method_t method = MH_Method_LastIndex;
   for (uint32_t i = 0; i < MH_Method_LastIndex; i++)
   {
-    if (0 == strncmp(MH_MethodTable[i].Name, &line[cursor], MH_MethodTable[i].NameLength))
+    if (0 == strncmp(s_MH_GetMethodName(i), &line[cursor], u32_MH_GetMethodNameLength(i)))
     {
       method = (MH_Method_t)i;
       break;
@@ -30,7 +30,7 @@ static int32_t i32_MHS_ParseStartLine(MH_Connection_t * connection)
   connection->Request.Method = method;
 
   // считываем путь
-  cursor += MH_MethodTable[method].NameLength + 1;
+  cursor +=  u32_MH_GetMethodNameLength(method) + 1;
   uint32_t path_length = 0;
   
   while ((line[cursor]  != ' ') 
