@@ -12,52 +12,33 @@
 #include "../http.h"
 
 
-
-int32_t i32_Main_ReadStream(void * user_data, uint8_t * buffer, uint32_t count)
+typedef struct
 {
-  fprintf(stdout, "Read %d bytes from file 0x%08X\n", count, user_data);
-  return fread(buffer, 1, count, (FILE *)user_data);
-}
+  FILE * file;
+  SOCKET socket;
 
-int32_t i32_Main_WriteStream(void * user_data, const uint8_t * buffer, uint32_t count)
+} Main_Connection_t;
+
+
+
+static int32_t i32_Main_AfterRequest(MH_Connection_t * connection)
 {
-  fprintf(stdout, "Write %d bytes to file 0x%08X\n", count, user_data);
-  return fwrite(buffer, 1, count, (FILE *)user_data);
-}
-
-int32_t i32_Main_CloseStream(void * user_data, uint32_t * status_code)
-{
-  fprintf(stdout, "Close file 0x%08X\n", user_data);
-  int32_t ret = fclose((FILE *)user_data);
-  if (status_code != NULL)
-  {
-    *status_code = (ret < 0) ? 500 : 200;
-  }
-  
-  return ret;
-}
-
-
-int32_t i32_Main_ReqExec(MH_Connection_t * connection)
-{
-  MH_Stream_t stream = {0};
-
   fprintf(stdout, "Request: \"%s %s\"\n", s_MH_GetMethodName(connection->Request.Method), connection->Request.Path);
-
   uint8_t path[128];
   snprintf(path, sizeof(path), "./test_site%s", connection->Request.Path);
   fprintf(stdout, "File: %s\n", path);
 
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
 
-  FILE * handler = NULL;
+  web->file = NULL;
   if (connection->Request.Method == MH_Method_GET)
   {
-    handler = fopen(path, "rb");
-    if (handler != NULL)
+    web->file = fopen(path, "rb");
+    if (web->file != NULL)
     {
       // для GET надо прописать размер файла
-      fseek(handler, 0, SEEK_END);
-      int32_t size = ftell(handler);
+      fseek(web->file, 0, SEEK_END);
+      int32_t size = ftell(web->file);
       if (size < 0)
       {
         connection->Response.Headers.ContentLength = 0;
@@ -67,39 +48,61 @@ int32_t i32_Main_ReqExec(MH_Connection_t * connection)
         connection->Response.Headers.ContentLength = size;
       }
       // возвращаем указатель в начало
-      fseek(handler, 0, SEEK_SET);
+      fseek(web->file, 0, SEEK_SET);
     }
   }
   else if (connection->Request.Method == MH_Method_POST)
   {
     if (0 == strncmp("./test_site/post/", path, sizeof("./test_site/post/") - 1))
     {
-      handler = fopen(path, "wb");
+      web->file = fopen(path, "wb");
     }
   }
 
-  if (handler == NULL)
+  if (web->file == NULL)
   {
     return i32_MH_ReturnWithCode(connection, 404);
   }
-
-  fprintf(stdout, "Open file 0x%08X\n", handler);
-
-  stream.UserData = handler;
-  stream.Read = i32_Main_ReadStream;
-  stream.Write = i32_Main_WriteStream;
-  stream.Close = i32_Main_CloseStream;
-
-  i32_MH_SetStream(connection, &stream);
+  
+  fprintf(stdout, "Open file 0x%08X\n", web->file);
 
   return i32_MH_ReturnWithCode(connection, 200);
 }
 
-
-
-int32_t i32_Main_SocketSend(void * user_data, uint8_t * data, uint32_t count)
+static int32_t i32_Main_WriteRequestBody(MH_Connection_t * connection, uint8_t * data, uint32_t count)
 {
-  int32_t ret = send((SOCKET)user_data, data, count, 0);
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
+  fprintf(stdout, "Write %d bytes to file 0x%08X\n", count, web->file);
+  return fwrite(data, 1, count, web->file);
+}
+
+static int32_t i32_Main_AfterRequestBody(MH_Connection_t * connection)
+{
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
+  fprintf(stdout, "Close file 0x%08X (req)\n", web->file);
+  int32_t ret = fclose(web->file);  
+  return ret;
+}
+
+static int32_t i32_Main_ReadResponseBody(MH_Connection_t * connection, uint8_t * buffer, uint32_t count)
+{
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
+  fprintf(stdout, "Read %d bytes from file 0x%08X\n", count, web->file);
+  return fread(buffer, 1, count, web->file);
+}
+
+static int32_t i32_Main_AfterResponseBody(MH_Connection_t * connection)
+{
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
+  fprintf(stdout, "Close file 0x%08X (res)\n", web->file);
+  int32_t ret = fclose(web->file);  
+  return ret;
+}
+
+static int32_t i32_Main_Send(MH_Connection_t * connection, uint8_t * data, uint32_t count)
+{
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
+  int32_t ret = send(web->socket, data, count, 0);
   if (ret == SOCKET_ERROR)
   {
     fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
@@ -107,44 +110,42 @@ int32_t i32_Main_SocketSend(void * user_data, uint8_t * data, uint32_t count)
   return ret;
 }
 
+static int32_t i32_Main_Recv(MH_Connection_t * connection, uint8_t * buffer, uint32_t buffer_size)
+{
+  Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
+  int32_t ret = recv(web->socket, buffer, buffer_size, 0);
+  if (ret == SOCKET_ERROR)
+  {
+    fprintf(stderr, "send failed with error: %d\n", WSAGetLastError());
+  }
+  return ret;
+}
+
+
+const MH_Callbacks_t mh_callbacks = {
+  
+  .AfterRequest       = i32_Main_AfterRequest,
+  .WriteRequestBody   = i32_Main_WriteRequestBody,
+  .AfterRequestBody   = i32_Main_AfterRequestBody,
+  .ReadResponseBody   = i32_Main_ReadResponseBody,
+  .AfterResponseBody  = i32_Main_AfterResponseBody,
+  .Send               = i32_Main_Send,
+  .Recv               = i32_Main_Recv,
+};
+
 static uint8_t recvbuf[256];
 
 int32_t connsection_work(SOCKET connection)
 {
   MH_Connection_t mhs;
-  MH_Transmitter_t tx = {.UserData = (void *)connection,
-                         .Send = i32_Main_SocketSend,
-                         .Buffer = recvbuf,
-                         .BufferSize = sizeof(recvbuf)};
+  Main_Connection_t web = {.socket = connection};
 
-  i32_MH_InitServer(&mhs, i32_Main_ReqExec, &tx);
+  int32_t ret = i32_MH_ConnectionWork(&mhs, &web, &mh_callbacks, recvbuf, sizeof(recvbuf));
 
-  int iResult;
-  do 
+  if (ret == MH_RC_RECVERROR)
   {
-    iResult = recv(connection, recvbuf, sizeof(recvbuf), 0);
-
-    if (iResult > 0)
-    {
-      fprintf(stdout, "Received %d bytes\n", iResult);
-      int32_t ret = i32_MH_OnReceive(&mhs, recvbuf, iResult);
-      if (ret < 0)
-      {
-        // разрываем соединение
-        fprintf(stdout, "Server close connection\n");
-        break;
-      }
-    }
-    else if (iResult == 0)
-    {
-      fprintf(stdout, "Client close connection\n");
-    }
-    else  
-    {
-      fprintf(stderr, "recv failed with error: %d\n", WSAGetLastError());
-    }
-
-  } while (iResult > 0);
+    fprintf(stderr, "WSAStartup failed with error: %d\n", WSAGetLastError());
+  }
 
   return 0;
 }

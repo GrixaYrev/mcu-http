@@ -3,17 +3,17 @@
 
 
 
-int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream)
-{
-  if (connection == NULL)
-  {
-    return MH_RC_INVALARG;
-  }
+// int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream)
+// {
+//   if (connection == NULL)
+//   {
+//     return MH_RC_INVALARG;
+//   }
 
-  connection->Stream = *stream;
-  connection->Stream.IsOpened = true;
-  return MH_RC_OK;
-}
+//   connection->Stream = *stream;
+//   connection->Stream.IsOpened = true;
+//   return MH_RC_OK;
+// }
 
 int32_t i32_MH_SetContentLength(MH_Connection_t * connection, uint32_t length)
 {

@@ -45,22 +45,20 @@ const uint8_t * s_MH_GetResponseTextByCode(uint32_t code)
 
 
 
-int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
+int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection, uint8_t * buffer, uint32_t buffer_size)
 {
-  if (connection->Transmitter.Send == NULL)
+  if (connection->Callbacks.Send == NULL)
   {
     return MH_RC_INVALARG;
   }
 
-  uint8_t * buf = connection->Transmitter.Buffer;
-  uint32_t buf_size = connection->Transmitter.BufferSize;
-  int32_t total_length = snprintf(buf, buf_size, "HTTP/1.1 %d %s\r\n", 
+  int32_t total_length = snprintf(buffer, buffer_size, "HTTP/1.1 %d %s\r\n", 
                                   connection->Response.Code, s_MH_GetResponseTextByCode(connection->Response.Code));
   // здесь и далее проверяем, что остался большой запас в буфере (пару байт)
   // конечно, есть вероятность, что прописали целиком, и все точно, но проще сделать обязательный запас
   // и не думать, как проверить, все ли влезло
   // и запас пару байт на пустую строчку
-  if (total_length >= (buf_size - 3))
+  if (total_length >= (buffer_size - 3))
   {
     // ошибка, слишком маленький буфер
     return MH_RC_SMALLBUFFER;
@@ -70,9 +68,9 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
   const int32_t headers_count = i32_MH_GetHeaderTableSize();
   while (header_index < headers_count)
   {
-    int32_t line_length = i32_MH_WriteHeaderLine(&connection->Response.Headers, &buf[total_length], 
-                                                              buf_size - total_length, header_index);
-    if ((total_length + line_length) >= (buf_size - 3))
+    int32_t line_length = i32_MH_WriteHeaderLine(&connection->Response.Headers, &buffer[total_length], 
+                                                              buffer_size - total_length, header_index);
+    if ((total_length + line_length) >= (buffer_size - 3))
     {
       if (total_length == 0)
       {
@@ -82,7 +80,7 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
       else
       {
         // отправляем
-        int32_t ret = connection->Transmitter.Send(connection->Transmitter.UserData, buf, total_length);
+        int32_t ret = connection->Callbacks.Send(connection, buffer, total_length);
         if (ret != total_length)
         {
           return MH_RC_SENDERROR;
@@ -99,9 +97,9 @@ int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection)
   }
 
   // в конце дописать пустую строчку (место зарезервировано) и отправить
-  buf[total_length++] = '\r';
-  buf[total_length++] = '\n';
-  int32_t ret = connection->Transmitter.Send(connection->Transmitter.UserData, buf, total_length);
+  buffer[total_length++] = '\r';
+  buffer[total_length++] = '\n';
+  int32_t ret = connection->Callbacks.Send(connection, buffer, total_length);
   if (ret != total_length)
   {
     return MH_RC_SENDERROR;
