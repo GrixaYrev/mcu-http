@@ -28,6 +28,9 @@
 #define MH_RC_SMALLBUFFER (-6)
 #define MH_RC_CLOSE       (-7)
 #define MH_RC_WRITEERROR  (-8)
+#define MH_RC_RECVERROR   (-9)
+
+
 
 
 typedef enum
@@ -74,10 +77,33 @@ typedef enum
 
 } MH_HeaderConnection_t;
 
+typedef enum
+{
+  MH_HeaderContentType_text_html = 0,
+  MH_HeaderContentType_text_plain,
+  MH_HeaderContentType_image_png,
+  MH_HeaderContentType_image_jpeg,
+  MH_HeaderContentType_application_json,
+  MH_HeaderContentType_application_octet_stream,
+
+  MH_HeaderContentType_LastIndex
+
+} MH_HeaderContentType_t;
+
+typedef enum
+{
+  MH_HeaderContentEncoding_None = 0,
+  MH_HeaderContentEncoding_gzip,
+
+} MH_HeaderContentEncoding_t;
+
+
 typedef struct
 {
-  uint32_t              ContentLength;
-  MH_HeaderConnection_t Connection;
+  uint32_t                    ContentLength;
+  MH_HeaderConnection_t       Connection;
+  MH_HeaderContentType_t      ContentType;
+  MH_HeaderContentEncoding_t  ContentEncoding;
 
 } MH_Headers_t;
 
@@ -86,7 +112,7 @@ typedef struct
   uint8_t * Name;
   uint8_t * Value;
 
-} MH_ParametersInURL_t;
+} MH_ParametersInURL_t; 
 
 
 typedef struct
@@ -99,6 +125,7 @@ typedef struct
 
 } MH_Request_t;
 
+
 typedef struct
 {
   MH_Headers_t  Headers; 
@@ -107,37 +134,54 @@ typedef struct
 } MH_Response_t;
 
 
-typedef int32_t (*i32_MH_WriteToStream_t)(void * user_data,
-                                          const uint8_t * data, uint32_t count);
-typedef int32_t (*i32_MH_ReadStream_t)(void * user_data, 
-                                       uint8_t * buffer, uint32_t count);
-typedef int32_t (*i32_MH_CloseStream_t)(void * user_data, uint32_t * status_code);
+// typedef int32_t (*i32_MH_WriteToStream_t)(void * user_data,
+//                                           const uint8_t * data, uint32_t count);
+// typedef int32_t (*i32_MH_ReadStream_t)(void * user_data, 
+//                                        uint8_t * buffer, uint32_t count);
+// typedef int32_t (*i32_MH_CloseStream_t)(void * user_data, uint32_t * status_code);
 
 
-typedef struct
-{
-  void *                  UserData;
-  i32_MH_WriteToStream_t  Write;
-  i32_MH_ReadStream_t     Read;
-  i32_MH_CloseStream_t    Close;
-  uint32_t                IsOpened;
+// typedef struct
+// {
+//   void *                  UserData;
+//   i32_MH_WriteToStream_t  Write;
+//   i32_MH_ReadStream_t     Read;
+//   i32_MH_CloseStream_t    Close;
+//   uint32_t                IsOpened;
 
-} MH_Stream_t;
+// } MH_Stream_t;
 
 
 typedef struct mh_conn_s MH_Connection_t;
 
-typedef int32_t (*i32_MH_ReqExec_t)(MH_Connection_t * connection);
-typedef int32_t (*i32_MH_Send_t)(void * user_data, uint8_t * data, uint32_t count);
+// typedef int32_t (*i32_MH_ReqExec_t)(MH_Connection_t * connection);
+// typedef int32_t (*i32_MH_Send_t)(void * user_data, uint8_t * data, uint32_t count);
+
+typedef int32_t (*i32_MH_Callback_t)(MH_Connection_t * connection);
+typedef int32_t (*i32_MH_CallbackData_t)(MH_Connection_t * connection, uint8_t * data, uint32_t count);
+
 
 typedef struct
 {
-  void *        UserData;
-  i32_MH_Send_t Send;
-  uint8_t *     Buffer;
-  uint32_t      BufferSize;
+  i32_MH_Callback_t     AfterRequest;
+  i32_MH_CallbackData_t WriteRequestBody;
+  i32_MH_Callback_t     AfterRequestBody;
+  i32_MH_CallbackData_t ReadResponseBody;
+  i32_MH_Callback_t     AfterResponseBody;
+  i32_MH_CallbackData_t Send;
+  i32_MH_CallbackData_t Recv;   // если неположительное число, то считается закрытием сокета
 
-} MH_Transmitter_t;
+} MH_Callbacks_t;
+
+
+// typedef struct
+// {
+//   void *        UserData;
+//   i32_MH_Send_t Send;
+//   uint8_t *     Buffer;
+//   uint32_t      BufferSize;
+
+// } MH_Transmitter_t;
 
 
 typedef enum
@@ -156,9 +200,10 @@ typedef struct mh_conn_s
   MH_Response_t       Response;
   uint32_t            BodyCount;
   void *              UserData;
-  i32_MH_ReqExec_t    RequestExecute;
-  MH_Stream_t         Stream;
-  MH_Transmitter_t    Transmitter;
+  // i32_MH_ReqExec_t    RequestExecute;
+  // MH_Stream_t         Stream;
+  // MH_Transmitter_t    Transmitter;
+  MH_Callbacks_t      Callbacks;
 
 } MH_Connection_t;
 
@@ -185,17 +230,18 @@ int32_t i32_MH_WriteHeaderLine(MH_Headers_t * headers, uint8_t * buffer, uint32_
 void v_MH_HeaderDefault(MH_Headers_t * headers);
 
 const uint8_t * s_MH_GetResponseTextByCode(uint32_t code);
-int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection);
+int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection, uint8_t * buffer, uint32_t buffer_size);
 
 const uint8_t * s_MH_GetMethodName(MH_Method_t method);
 uint32_t u32_MH_GetMethodNameLength(MH_Method_t method);
 
-int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
+// int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
 int32_t i32_MH_SetContentLength(MH_Connection_t * connection, uint32_t length);
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request);
 
 
-int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t length);
-int32_t i32_MH_InitServer(MH_Connection_t * connection, i32_MH_ReqExec_t request_execute, 
-                                                        MH_Transmitter_t * transmitter);
+// int32_t i32_MH_OnReceive(MH_Connection_t * connection, uint8_t * data, uint32_t length);
+int32_t i32_MH_ConnectionWork(MH_Connection_t * connection, void * user_data,
+                                                            const MH_Callbacks_t * callbacks,
+                                                            uint8_t * buffer, uint32_t buffer_size);
 
