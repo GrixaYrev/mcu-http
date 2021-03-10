@@ -27,6 +27,18 @@ int32_t i32_MH_SetContentLength(MH_Connection_t * connection, uint32_t length)
   return MH_RC_OK;
 }
 
+int32_t i32_MH_SetContentType(MH_Connection_t * connection, MH_HeaderContentType_t type)
+{
+  if (connection == NULL)
+  {
+    return MH_RC_INVALARG;
+  }
+
+  connection->Response.Headers.ContentType = type;
+  
+  return MH_RC_OK;
+}
+
 
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request)
 {

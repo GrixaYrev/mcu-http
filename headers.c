@@ -149,6 +149,6 @@ void v_MH_HeaderDefault(MH_Headers_t * headers)
 {
   headers->ContentLength = 0;
   headers->Connection = MH_HeaderConnection_Close;
-  headers->ContentType = MH_HeaderContentType_text_html;
+  headers->ContentType = MH_HeaderContentType_LastIndex;
   headers->ContentEncoding = MH_HeaderContentEncoding_None;
 }

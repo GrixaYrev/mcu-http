@@ -363,14 +363,17 @@ int32_t i32_MH_ConnectionWork(MH_Connection_t * connection, void * user_data,
       ret = i32_MH_OnReceive(connection, buffer, received);
       if (ret < 0)
       {
-        // разрываем соединение
-        MH_TRACE("Server close connection: %d\n", ret);
-        break;
+        MH_TRACE("Server receive error: %d\n", ret);
+        if (connection->RxState != MH_RxState_Finish)
+        {
+          // разрываем соединение
+          break;
+        }
       }
       if (connection->RxState == MH_RxState_Finish)
       {
         ret = i32_MH_SendResponse(connection, buffer, buffer_size);
-        if (ret < 0)
+        if ((ret < 0) && (ret != MH_RC_CLOSE))
         {
           // разрываем соединение
           MH_TRACE("Server close connection: %d\n", ret);
