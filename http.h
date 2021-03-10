@@ -237,6 +237,7 @@ uint32_t u32_MH_GetMethodNameLength(MH_Method_t method);
 
 // int32_t i32_MH_SetStream(MH_Connection_t * connection, MH_Stream_t * stream);
 int32_t i32_MH_SetContentLength(MH_Connection_t * connection, uint32_t length);
+int32_t i32_MH_SetContentType(MH_Connection_t * connection, MH_HeaderContentType_t type);
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request);
 
 
