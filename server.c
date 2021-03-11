@@ -389,5 +389,11 @@ int32_t i32_MH_ConnectionWork(MH_Connection_t * connection, void * user_data,
 
   } while (received > 0);
 
+  // для корректного закрытия соединения
+  if (connection->Callbacks.CloseConnection != NULL)
+  {
+    connection->Callbacks.CloseConnection(connection);
+  }
+
   return ret;
 }
