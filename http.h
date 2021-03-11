@@ -168,6 +168,7 @@ typedef struct
   i32_MH_Callback_t     AfterRequestBody;
   i32_MH_CallbackData_t ReadResponseBody;
   i32_MH_Callback_t     AfterResponseBody;
+  i32_MH_Callback_t     CloseConnection;
   i32_MH_CallbackData_t Send;
   i32_MH_CallbackData_t Recv;   // если неположительное число, то считается закрытием сокета
 
