@@ -19,7 +19,14 @@ typedef struct
 
 static int32_t i32_MH_ContentLengthParse(MH_Headers_t * headers, MH_Line_t * line, uint32_t offset)
 {
-  headers->ContentLength = atoi(&line->Data[offset]);
+  uint8_t buf[12]; // даже такую большую длину не обработаем, так что достаточный размер
+  uint32_t length = line->Length - offset;
+  if (length < sizeof(buf))
+  {
+    memcpy(buf, &line->Data[offset], length);
+    buf[length] = '\0'; // в условии строгое неравенство, так что место для терминатора есть
+    headers->ContentLength = atoi(buf);
+  }
   return 0;
 }
 
