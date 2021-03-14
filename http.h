@@ -81,8 +81,11 @@ typedef enum
 {
   MH_HeaderContentType_text_html = 0,
   MH_HeaderContentType_text_plain,
+  MH_HeaderContentType_text_js,
+  MH_HeaderContentType_text_css,
   MH_HeaderContentType_image_png,
   MH_HeaderContentType_image_jpeg,
+  MH_HeaderContentType_image_x_icon,
   MH_HeaderContentType_application_json,
   MH_HeaderContentType_application_octet_stream,
 
@@ -229,6 +232,7 @@ int32_t i32_MH_GetHeaderTableSize(void);
 int32_t i32_MH_WriteHeaderLine(MH_Headers_t * headers, uint8_t * buffer, uint32_t buffer_size, 
                                                                          uint32_t header_index);
 void v_MH_HeaderDefault(MH_Headers_t * headers);
+MH_HeaderContentType_t x_MH_GetContentTypeByExtension(const uint8_t * path);
 
 const uint8_t * s_MH_GetResponseTextByCode(uint32_t code);
 int32_t i32_MH_SendResponseHeader(MH_Connection_t * connection, uint8_t * buffer, uint32_t buffer_size);

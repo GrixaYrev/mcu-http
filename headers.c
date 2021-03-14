@@ -61,15 +61,24 @@ static int32_t i32_MH_ConnectionAdd(MH_Headers_t * headers, uint8_t * buffer, ui
 
 // =========== Content-Type ===========
 
-static const uint8_t * const MH_HeaderContentTypeName[MH_HeaderContentType_LastIndex] = {
+typedef struct 
+{
+  const uint8_t * const Name;
+  const uint8_t * const Extension;
 
-  "text/html",
-  "text/plain",
-  "image/png",
-  "image/jpeg",
-  "application/json",
-  "application/octet-stream",
+} MH_HeaderContentTypeTable_t;
 
+static const MH_HeaderContentTypeTable_t MH_HeaderContentTypeTable[MH_HeaderContentType_LastIndex] = {
+
+  {"text/html",                 ".html"},
+  {"text/plain",                ".txt" },
+  {"text/javascript",           ".js"  },
+  {"text/css",                  ".css" },
+  {"image/png",                 ".png" },
+  {"image/jpeg",                ".jpeg"},
+  {"image/x-icon",              ".ico" },
+  {"application/json",          ".json"},
+  {"application/octet-stream",  ".bin" },
 };
 
 static int32_t i32_MH_ContentTypeParse(MH_Headers_t * headers, MH_Line_t * line, uint32_t offset)
@@ -78,7 +87,7 @@ static int32_t i32_MH_ContentTypeParse(MH_Headers_t * headers, MH_Line_t * line,
 
   for (int32_t i = 0; i < MH_HeaderContentType_LastIndex; i++)
   {
-    if (NULL != strstr(&line->Data[offset], MH_HeaderContentTypeName[i]))
+    if (NULL != strstr(&line->Data[offset], MH_HeaderContentTypeTable[i].Name))
     {
       headers->ContentType = i;
       break;
@@ -92,7 +101,7 @@ static int32_t i32_MH_ContentTypeAdd(MH_Headers_t * headers, uint8_t * buffer, u
 {
   if (headers->ContentType < MH_HeaderContentType_LastIndex)
   {
-    return snprintf(buffer, buffer_size, "%s %s\r\n", name, MH_HeaderContentTypeName[headers->ContentType]);
+    return snprintf(buffer, buffer_size, "%s %s\r\n", name, MH_HeaderContentTypeTable[headers->ContentType].Name);
   }
   return 0;
 }
@@ -158,4 +167,25 @@ void v_MH_HeaderDefault(MH_Headers_t * headers)
   headers->Connection = MH_HeaderConnection_Close;
   headers->ContentType = MH_HeaderContentType_LastIndex;
   headers->ContentEncoding = MH_HeaderContentEncoding_None;
+}
+
+
+MH_HeaderContentType_t x_MH_GetContentTypeByExtension(const uint8_t * path)
+{
+  if (path != NULL)
+  {
+    uint8_t * dot = strrchr(path, '.');
+    if (dot != NULL)
+    {
+      for (uint32_t i = 0; i < MH_HeaderContentType_LastIndex; i++)
+      {
+        if (0 == strcmp(dot, MH_HeaderContentTypeTable[i].Extension))
+        {
+          return (MH_HeaderContentType_t)i;
+        }
+      }
+    }
+  }
+
+  return MH_HeaderContentType_LastIndex;
 }
