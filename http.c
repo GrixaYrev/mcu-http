@@ -39,6 +39,18 @@ int32_t i32_MH_SetContentType(MH_Connection_t * connection, MH_HeaderContentType
   return MH_RC_OK;
 }
 
+int32_t i32_MH_SetContentEncoding(MH_Connection_t * connection, MH_HeaderContentEncoding_t encoding)
+{
+  if (connection == NULL)
+  {
+    return MH_RC_INVALARG;
+  }
+
+  connection->Response.Headers.ContentEncoding = encoding;
+  
+  return MH_RC_OK;
+}
+
 
 int32_t i32_MH_ParseParametersInURL(MH_Request_t * request)
 {
