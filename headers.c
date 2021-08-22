@@ -32,11 +32,8 @@ static int32_t i32_MH_ContentLengthParse(MH_Headers_t * headers, MH_Line_t * lin
 
 static int32_t i32_MH_ContentLengthAdd(MH_Headers_t * headers, uint8_t * buffer, uint32_t buffer_size, const uint8_t * name)
 {
-  if (headers->ContentLength > 0)
-  {
-    return snprintf(buffer, buffer_size, "%s %u\r\n", name, headers->ContentLength);
-  }
-  return 0;
+  // длину шлем всегда, чтоб браузеры не тупили
+  return snprintf(buffer, buffer_size, "%s %u\r\n", name, headers->ContentLength);
 }
 
 
