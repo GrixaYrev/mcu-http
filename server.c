@@ -197,6 +197,7 @@ static int32_t i32_MH_SendResponse(MH_Connection_t * connection, uint8_t * buffe
         result = connection->Callbacks.ReadResponseBody(connection, buffer, count);
         if (result > 0)
         {
+          count = result;
           result = connection->Callbacks.Send(connection, buffer, count);
           if (result != count)
           {
