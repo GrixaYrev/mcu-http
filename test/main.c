@@ -25,7 +25,7 @@ static int32_t i32_Main_AfterRequest(MH_Connection_t * connection)
 {
   fprintf(stdout, "Request: \"%s %s\"\n", s_MH_GetMethodName(connection->Request.Method), connection->Request.Path);
   uint8_t path[128];
-  snprintf(path, sizeof(path), "./test_site%s", connection->Request.Path);
+  snprintf(path, sizeof(path), "./test_web%s", connection->Request.Path);
   fprintf(stdout, "File: %s\n", path);
 
   Main_Connection_t * web = (Main_Connection_t *)connection->UserData;
@@ -53,7 +53,7 @@ static int32_t i32_Main_AfterRequest(MH_Connection_t * connection)
   }
   else if (connection->Request.Method == MH_Method_POST)
   {
-    if (0 == strncmp("./test_site/post/", path, sizeof("./test_site/post/") - 1))
+    if (0 == strncmp("./test_web/post/", path, sizeof("./test_web/post/") - 1))
     {
       web->file = fopen(path, "wb");
     }
